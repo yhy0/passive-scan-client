@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -86,6 +87,7 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
             if(Config.PROXY && toolFlag == IBurpExtenderCallbacks.TOOL_PROXY) {
                 IHttpService httpService = messageInfo.getHttpService();
                 String host = messageInfo.getHttpService().getHost();
+
                 //stdout.println(Config.DOMAIN_REGX);
                 if(Config.DOMAIN_REGX.isEmpty() && !Utils.isMathch(Config.DOMAIN_REGX,host)){
                     return;
@@ -102,7 +104,14 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                 }
 
                 final IHttpRequestResponse resrsp = messageInfo;
+                byte[] response = resrsp.getResponse();
 
+                //  请求内容过滤
+                String responseContent = new String(response, StandardCharsets.UTF_8);
+                if (Config.BLACKLIST_RESP.isEmpty() || Utils.isMathchResp(Config.BLACKLIST_RESP,responseContent)){
+                    //stdout.println(responseContent);
+                    return ;
+                }
                 //final LogEntry logEntry = new LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
 
                 // create a new log entry with the message details
@@ -149,6 +158,7 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                 }
 
                 final IHttpRequestResponse resrsp = messageInfo;
+
 
                 //final LogEntry logEntry = new LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
 

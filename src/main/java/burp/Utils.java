@@ -21,6 +21,16 @@ public class Utils {
 
    // 匹配规则
     public static boolean isMathch(String regx,String str){
+        Pattern pat = Pattern.compile("([\\w]+[\\.]|)("+regx+")\\b(?![\\w\\d])",Pattern.CASE_INSENSITIVE);//正则判断
+        Matcher mc= pat.matcher(str);//条件匹配
+        if(mc.find()){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    public static boolean isMathchResp(String regx,String str){
         Pattern pat = Pattern.compile("([\\w]+[\\.]|)("+regx+")",Pattern.CASE_INSENSITIVE);//正则判断
         Matcher mc= pat.matcher(str);//条件匹配
         if(mc.find()){

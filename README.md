@@ -1,5 +1,12 @@
 # Passive Scan Client | Burp被动扫描流量转发插件
 
+## 修改   
+修复了后缀过滤时正则表达式匹配问题
+![regerror.png](doc/regerror.png)
+![img.png](doc/imgUpdate.png)
+
+增加了对Response（包括了header）的过滤  
+![img.png](doc/update.png)
 
 ## 0x01 插件简介
 

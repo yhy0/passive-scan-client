@@ -29,6 +29,8 @@ public class GUI implements IMessageEditorController {
 
     private JTextField tfDomain;
     private JTextField tfExcludeSuffix;
+
+    private JTextField respExclude;
     private JTextField tfBlackList;
     private JToggleButton btnConn;
     private JButton btnClear;
@@ -210,6 +212,7 @@ public class GUI implements IMessageEditorController {
                     Config.PROXY_BASIC_HEADER = tfHeader.getText();
                     Config.DOMAIN_REGX = tfDomain.getText();
                     Config.SUFFIX_REGX = tfExcludeSuffix.getText();
+                    Config.BLACKLIST_RESP = respExclude.getText();
                     Config.BLACKLIST_REGX = tfBlackList.getText();
                     Config.INTERVAL_TIME = Integer.valueOf(tfIntervalTime.getText());
                     setAllEnabled(false);
@@ -420,13 +423,34 @@ public class GUI implements IMessageEditorController {
         gbc_tfExcludeSuffix.gridx = 3;
         gbc_tfExcludeSuffix.gridy = 0;
         FilterPanel.add(tfExcludeSuffix, gbc_tfExcludeSuffix);
+
+
+    //新增UI
+        JLabel respExcludeTag = new JLabel("Exclude response:");
+        GridBagConstraints gbc_respExcludeTag = new GridBagConstraints();
+        gbc_respExcludeTag.insets = new Insets(0, 0, 0, 5);
+        gbc_respExcludeTag.anchor = 13;
+        gbc_respExcludeTag.fill = 2;
+        gbc_respExcludeTag.gridx = 0;
+        gbc_respExcludeTag.gridy = 1;
+        FilterPanel.add(respExcludeTag, gbc_respExcludeTag);
+
+        respExclude = new JTextField(35);
+        respExclude.setText(Config.BLACKLIST_RESP);
+        GridBagConstraints gbc_respExcludeSuffix = new GridBagConstraints();
+        gbc_respExcludeSuffix.insets = new Insets(0, 0, 0, 5);
+        gbc_respExcludeSuffix.fill = 2;
+        gbc_respExcludeSuffix.gridx = 1;
+        gbc_respExcludeSuffix.gridy = 1;
+        FilterPanel.add(respExclude, gbc_respExcludeSuffix);
 //
-//        GridBagConstraints gbc_vb4 = new GridBagConstraints();
-//        gbc_vb4.insets = new Insets(0, 0, 0, 5);
-//        gbc_vb4.fill = 2;
-//        gbc_vb4.gridx = 7;
-//        gbc_vb4.gridy = 0;
-//        FilterPanel.add(Box.createVerticalBox(), gbc_vb4);
+
+        GridBagConstraints gbc_vb4 = new GridBagConstraints();
+        gbc_vb4.insets = new Insets(0, 0, 0, 5);
+        gbc_vb4.fill = 2;
+        gbc_vb4.gridx = 7;
+        gbc_vb4.gridy = 0;
+        FilterPanel.add(Box.createVerticalBox(), gbc_vb4);
 
         // 转发url总数，默认0
         JLabel lbRequest = new JLabel("Total:");
@@ -559,6 +583,7 @@ public class GUI implements IMessageEditorController {
         tfTimeout.setEnabled(is);
         tfDomain.setEnabled(is);
         tfExcludeSuffix.setEnabled(is);
+        respExclude.setEnabled(is);
         tfBlackList.setEnabled(is);
         tfIntervalTime.setEnabled(is);
     }

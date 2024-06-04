@@ -93,28 +93,84 @@ public class HttpAndHttpsProxy {
                 String header_value = h[1].trim();
                 httpsConn.setRequestProperty(header_key, header_value);
             }
-            // 发送POST请求必须设置如下两行
-            httpsConn.setDoOutput(true);
-            httpsConn.setDoInput(true);
-
-
-            // 获取URLConnection对象对应的输出流
-            out = new PrintWriter(httpsConn.getOutputStream());
-
-            if(body != null) {
-                // 发送请求参数
-                out.print(new String(body));
+            //设置控制请求方法的Flag
+            String methodFlag = "";
+            // 设置通用的请求属性
+            for(String header:headers){
+                if(header.startsWith("GET") ||
+                        header.startsWith("POST") ||
+                        header.startsWith("PUT")){
+                    if(header.startsWith("GET")){
+                        methodFlag = "GET";
+                    }
+                    else if(header.startsWith("POST")||
+                            header.startsWith("PUT")){
+                        methodFlag = "POST";
+                    }//在循环中重复设置了methodFlag，代码非常的丑陋冗余，请见谅
+                    continue;
+                }//判断结束后以键值对的方式获取header
+                // https://github.com/c0ny1/passive-scan-client/pull/21
+                String[] h = header.split(": ");
+                String header_key = h[0].trim();
+                String header_value = h[1].trim();
+                httpsConn.setRequestProperty(header_key, header_value);
             }
-            // flush输出流的缓冲
-            out.flush();
+
+            if (methodFlag.equals("GET")){
+                // 发送GET请求必须设置如下两行
+                httpsConn.setDoOutput(false);
+                httpsConn.setDoInput(true);
+
+                // 获取URLConnection对象的连接
+                httpsConn.connect();
+            }
+            else if(methodFlag.equals("POST")){
+                // 发送POST请求必须设置如下两行
+                httpsConn.setDoOutput(true);
+                httpsConn.setDoInput(true);
+
+                // 获取URLConnection对象对应的输出流
+                out = new PrintWriter(httpsConn.getOutputStream());
+                if(body != null) {
+                    // 发送请求参数
+                    out.print(new String(body));
+                }
+                // flush输出流的缓冲
+                out.flush();
+            }
             // 定义BufferedReader输入流来读取URL的响应
-            in = new BufferedReader(
-                    new InputStreamReader(httpsConn.getInputStream()));
+            in = new BufferedReader(new InputStreamReader(httpsConn.getInputStream()));
             String line;
             while ((line = in.readLine()) != null) {
                 result += line;
                 result += "\r\n";
             }
+
+
+
+
+            // 发送POST请求必须设置如下两行
+//            httpsConn.setDoOutput(true);
+//            httpsConn.setDoInput(true);
+//
+//
+//            // 获取URLConnection对象对应的输出流
+//            out = new PrintWriter(httpsConn.getOutputStream());
+//
+//            if(body != null) {
+//                // 发送请求参数
+//                out.print(new String(body));
+//            }
+//            // flush输出流的缓冲
+//            out.flush();
+//            // 定义BufferedReader输入流来读取URL的响应
+//            in = new BufferedReader(
+//                    new InputStreamReader(httpsConn.getInputStream()));
+//            String line;
+//            while ((line = in.readLine()) != null) {
+//                result += line;
+//                result += "\r\n";
+//            }
             // 断开连接
             httpsConn.disconnect();
             //BurpExtender.stdout.println("====result===="+result);
@@ -218,10 +274,9 @@ public class HttpAndHttpsProxy {
                 String[] h = header.split(": ");
                 String header_key = h[0].trim();
                 String header_value = h[1].trim();
-                //BurpExtender.stdout.println("key: " + h[0].trim());
-                //BurpExtender.stdout.println("value: " + h[1].trim());
                 httpsConn.setRequestProperty(header_key, header_value);
             }
+
             //设置控制请求方法的Flag
             String methodFlag = "";
             // 设置通用的请求属性

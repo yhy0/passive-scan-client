@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,9 +13,9 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
 // 插件入口
-public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
+public class BurpExtender implements IBurpExtender, ITab, IHttpListener {
     public final static String extensionName = "Passive Scan Client";
-    public final static String version ="0.5.0";
+    public final static String version = "0.5.0";
     public static IBurpExtenderCallbacks callbacks;
     public static IExtensionHelpers helpers;
     public static PrintWriter stdout;
@@ -30,10 +31,10 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
         this.burpExtender = this;
         this.callbacks = callbacks;
         this.helpers = callbacks.getHelpers();
-        this.stdout = new PrintWriter(callbacks.getStdout(),true);
-        this.stderr = new PrintWriter(callbacks.getStderr(),true);
+        this.stdout = new PrintWriter(callbacks.getStdout(), true);
+        this.stderr = new PrintWriter(callbacks.getStderr(), true);
 
-        //  注册菜单拓展
+        // 注册菜单拓展
         callbacks.registerContextMenuFactory(new Send2PSCMenu());
         callbacks.setExtensionName(extensionName + " " + version);
         BurpExtender.this.gui = new GUI();
@@ -45,12 +46,12 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
             }
         });
         executorService = Executors.newSingleThreadExecutor();
-        //必须等插件界面显示完毕，重置JTable列宽才生效
+        // 必须等插件界面显示完毕，重置JTable列宽才生效
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                //按照比例显示列宽
-                float[] columnWidthPercentage = {5.0f, 5.0f, 55.0f, 20.0f, 15.0f};
+                // 按照比例显示列宽
+                float[] columnWidthPercentage = { 5.0f, 5.0f, 55.0f, 20.0f, 15.0f };
                 int tW = GUI.logTable.getWidth();
                 TableColumn column;
                 TableColumnModel jTableColumnModel = GUI.logTable.getColumnModel();
@@ -83,72 +84,81 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
         // 插件开启
         if (Config.IS_RUNNING && !messageIsRequest) {
             // 开启监控 Proxy，并且该消息是 Proxy 模块的
-            if(Config.PROXY && toolFlag == IBurpExtenderCallbacks.TOOL_PROXY) {
+            if (Config.PROXY && toolFlag == IBurpExtenderCallbacks.TOOL_PROXY) {
                 IHttpService httpService = messageInfo.getHttpService();
                 String host = messageInfo.getHttpService().getHost();
-                //stdout.println(Config.DOMAIN_REGX);
-                if(Config.DOMAIN_REGX.isEmpty() && !Utils.isMathch(Config.DOMAIN_REGX,host)){
+                // stdout.println(Config.DOMAIN_REGX);
+                if (Config.DOMAIN_REGX.isEmpty() && !Utils.isMathch(Config.DOMAIN_REGX, host)) {
                     return;
                 }
 
-                String  url = helpers.analyzeRequest(httpService,messageInfo.getRequest()).getUrl().toString();
+                String url = helpers.analyzeRequest(httpService, messageInfo.getRequest()).getUrl().toString();
                 String url2 = url;
                 url = url.indexOf("?") > 0 ? url.substring(0, url.indexOf("?")) : url;
-                if(!Config.SUFFIX_REGX.isEmpty() && Utils.isMathch(Config.SUFFIX_REGX,url)){
+                if (!Config.SUFFIX_REGX.isEmpty() && Utils.isMathch(Config.SUFFIX_REGX, url)) {
                     return;
                 }
-                if(!Config.BLACKLIST_REGX.isEmpty() && Utils.isMathch(Config.BLACKLIST_REGX,url2)){
+                if (!Config.BLACKLIST_REGX.isEmpty() && Utils.isMathch(Config.BLACKLIST_REGX, url2)) {
                     return;
                 }
 
                 final IHttpRequestResponse resrsp = messageInfo;
+                byte[] response = resrsp.getResponse();
 
-                //final LogEntry logEntry = new LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
+                // 请求内容进行过滤
+                String responseContent = new String(response, StandardCharsets.UTF_8);
+                if (!Config.BLACKLIST_RESP.isEmpty() && Utils.isMathchResp(Config.BLACKLIST_RESP, responseContent)) {
+                    // stdout.println(responseContent);
+                    return;
+                }
+                // final LogEntry logEntry = new
+                // LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
 
                 // create a new log entry with the message details
                 executorService.submit(new Runnable() {
                     @Override
                     public void run() {
-                        synchronized(log) {
+                        synchronized (log) {
                             int row = log.size();
                             String method = helpers.analyzeRequest(resrsp).getMethod();
-                            String[] proxy_hosts =  Config.PROXY_HOST.split(",");
-                            String[] proxy_ports =  Config.PROXY_PORT.split(",");
-                            String[] proxy_usernames =  Config.PROXY_USERNAME.split(",");
-                            String[] proxy_pwds =  Config.PROXY_PASSWORD.split(",");
-                            String[] proxy_headers =  Config.PROXY_BASIC_HEADER.split(",");
+                            String[] proxy_hosts = Config.PROXY_HOST.split(",");
+                            String[] proxy_ports = Config.PROXY_PORT.split(",");
+                            String[] proxy_usernames = Config.PROXY_USERNAME.split(",");
+                            String[] proxy_pwds = Config.PROXY_PASSWORD.split(",");
+                            String[] proxy_headers = Config.PROXY_BASIC_HEADER.split(",");
 
-                            for(int i=0; i < proxy_hosts.length; i++) {
+                            for (int i = 0; i < proxy_hosts.length; i++) {
                                 String port = "";
                                 String name = "";
                                 String pwd = "";
                                 String header = "";
-                                if(proxy_ports.length > i) {
+                                if (proxy_ports.length > i) {
                                     port = proxy_ports[i];
                                 }
-                                if(proxy_usernames.length > i) {
+                                if (proxy_usernames.length > i) {
                                     name = proxy_usernames[i];
                                 }
-                                if(proxy_pwds.length > i) {
+                                if (proxy_pwds.length > i) {
                                     pwd = proxy_pwds[i];
                                 }
-                                if(proxy_headers.length > i) {
+                                if (proxy_headers.length > i) {
                                     header = proxy_headers[i];
                                 }
 
                                 Map<String, String> mapResult = null;
                                 try {
-                                    mapResult = HttpAndHttpsProxy.Proxy(resrsp, proxy_hosts[i], port, name, pwd, header);
-                                    mapResult.put("proxyHost",proxy_hosts[i] + ":" + port);
+                                    mapResult = HttpAndHttpsProxy.Proxy(resrsp, proxy_hosts[i], port, name, pwd,
+                                            header);
+                                    mapResult.put("proxyHost", proxy_hosts[i] + ":" + port);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }
 
-                                log.add(new LogEntry(row+i,
-                                        callbacks.saveBuffersToTempFiles(resrsp), helpers.analyzeRequest(resrsp).getUrl(),
+                                log.add(new LogEntry(row + i,
+                                        callbacks.saveBuffersToTempFiles(resrsp),
+                                        helpers.analyzeRequest(resrsp).getUrl(),
                                         method,
-                                        mapResult)
-                                );
+                                        mapResult));
                                 GUI.logTable.getHttpLogTableModel().fireTableRowsInserted(row, row);
                             }
                         }
@@ -156,73 +166,75 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                 });
             }
 
-            else if(Config.REPEATER && toolFlag == IBurpExtenderCallbacks.TOOL_REPEATER) {
+            else if (Config.REPEATER && toolFlag == IBurpExtenderCallbacks.TOOL_REPEATER) {
                 IHttpService httpService = messageInfo.getHttpService();
                 String host = messageInfo.getHttpService().getHost();
-                //stdout.println(Config.DOMAIN_REGX);
-                if(Config.DOMAIN_REGX.isEmpty() && !Utils.isMathch(Config.DOMAIN_REGX,host)){
+                // stdout.println(Config.DOMAIN_REGX);
+                if (Config.DOMAIN_REGX.isEmpty() && !Utils.isMathch(Config.DOMAIN_REGX, host)) {
                     return;
                 }
 
-                String  url = helpers.analyzeRequest(httpService,messageInfo.getRequest()).getUrl().toString();
+                String url = helpers.analyzeRequest(httpService, messageInfo.getRequest()).getUrl().toString();
                 String url2 = url;
                 url = url.indexOf("?") > 0 ? url.substring(0, url.indexOf("?")) : url;
-                if(!Config.SUFFIX_REGX.isEmpty() && Utils.isMathch(Config.SUFFIX_REGX,url)){
+                if (!Config.SUFFIX_REGX.isEmpty() && Utils.isMathch(Config.SUFFIX_REGX, url)) {
                     return;
                 }
-                if(!Config.BLACKLIST_REGX.isEmpty() && Utils.isMathch(Config.BLACKLIST_REGX,url2)){
+                if (!Config.BLACKLIST_REGX.isEmpty() && Utils.isMathch(Config.BLACKLIST_REGX, url2)) {
                     return;
                 }
 
                 final IHttpRequestResponse resrsp = messageInfo;
 
-                //final LogEntry logEntry = new LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
+                // final LogEntry logEntry = new
+                // LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
 
                 // create a new log entry with the message details
                 executorService.submit(new Runnable() {
                     @Override
                     public void run() {
-                        synchronized(log) {
+                        synchronized (log) {
                             int row = log.size();
                             String method = helpers.analyzeRequest(resrsp).getMethod();
 
-                            String[] proxy_hosts =  Config.PROXY_HOST.split(",");
-                            String[] proxy_ports =  Config.PROXY_PORT.split(",");
-                            String[] proxy_usernames =  Config.PROXY_USERNAME.split(",");
-                            String[] proxy_pwds =  Config.PROXY_PASSWORD.split(",");
-                            String[] proxy_headers =  Config.PROXY_BASIC_HEADER.split(",");
+                            String[] proxy_hosts = Config.PROXY_HOST.split(",");
+                            String[] proxy_ports = Config.PROXY_PORT.split(",");
+                            String[] proxy_usernames = Config.PROXY_USERNAME.split(",");
+                            String[] proxy_pwds = Config.PROXY_PASSWORD.split(",");
+                            String[] proxy_headers = Config.PROXY_BASIC_HEADER.split(",");
 
-                            for(int i=0; i < proxy_hosts.length; i++) {
+                            for (int i = 0; i < proxy_hosts.length; i++) {
                                 String port = "";
                                 String name = "";
                                 String pwd = "";
                                 String header = "";
-                                if(proxy_ports.length > i) {
+                                if (proxy_ports.length > i) {
                                     name = proxy_ports[i];
                                 }
-                                if(proxy_usernames.length > i) {
+                                if (proxy_usernames.length > i) {
                                     name = proxy_usernames[i];
                                 }
-                                if(proxy_pwds.length > i) {
+                                if (proxy_pwds.length > i) {
                                     pwd = proxy_pwds[i];
                                 }
-                                if(proxy_headers.length > i) {
+                                if (proxy_headers.length > i) {
                                     header = proxy_headers[i];
                                 }
 
                                 Map<String, String> mapResult = null;
                                 try {
-                                    mapResult = HttpAndHttpsProxy.Proxy(resrsp, proxy_hosts[i], port, name, pwd, header);
-                                    mapResult.put("proxyHost",proxy_hosts[i] + ":" + port);
+                                    mapResult = HttpAndHttpsProxy.Proxy(resrsp, proxy_hosts[i], port, name, pwd,
+                                            header);
+                                    mapResult.put("proxyHost", proxy_hosts[i] + ":" + port);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }
 
-                                log.add(new LogEntry(row+i,
-                                        callbacks.saveBuffersToTempFiles(resrsp), helpers.analyzeRequest(resrsp).getUrl(),
+                                log.add(new LogEntry(row + i,
+                                        callbacks.saveBuffersToTempFiles(resrsp),
+                                        helpers.analyzeRequest(resrsp).getUrl(),
                                         method,
-                                        mapResult)
-                                );
+                                        mapResult));
                                 GUI.logTable.getHttpLogTableModel().fireTableRowsInserted(row, row);
                             }
                         }
@@ -230,73 +242,75 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                 });
             }
 
-            else if(Config.INTRUDER && toolFlag == IBurpExtenderCallbacks.TOOL_INTRUDER) {
+            else if (Config.INTRUDER && toolFlag == IBurpExtenderCallbacks.TOOL_INTRUDER) {
                 IHttpService httpService = messageInfo.getHttpService();
                 String host = messageInfo.getHttpService().getHost();
-                //stdout.println(Config.DOMAIN_REGX);
-                if(Config.DOMAIN_REGX.isEmpty() && !Utils.isMathch(Config.DOMAIN_REGX,host)){
+                // stdout.println(Config.DOMAIN_REGX);
+                if (Config.DOMAIN_REGX.isEmpty() && !Utils.isMathch(Config.DOMAIN_REGX, host)) {
                     return;
                 }
 
-                String  url = helpers.analyzeRequest(httpService,messageInfo.getRequest()).getUrl().toString();
+                String url = helpers.analyzeRequest(httpService, messageInfo.getRequest()).getUrl().toString();
                 String url2 = url;
                 url = url.indexOf("?") > 0 ? url.substring(0, url.indexOf("?")) : url;
-                if(!Config.SUFFIX_REGX.isEmpty() && Utils.isMathch(Config.SUFFIX_REGX,url)){
+                if (!Config.SUFFIX_REGX.isEmpty() && Utils.isMathch(Config.SUFFIX_REGX, url)) {
                     return;
                 }
-                if(!Config.BLACKLIST_REGX.isEmpty() && Utils.isMathch(Config.BLACKLIST_REGX,url2)){
+                if (!Config.BLACKLIST_REGX.isEmpty() && Utils.isMathch(Config.BLACKLIST_REGX, url2)) {
                     return;
                 }
 
                 final IHttpRequestResponse resrsp = messageInfo;
 
-                //final LogEntry logEntry = new LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
+                // final LogEntry logEntry = new
+                // LogEntry(1,callbacks.saveBuffersToTempFiles(iInterceptedProxyMessage.getMessageInfo()),helpers.analyzeRequest(resrsp).getUrl());
 
                 // create a new log entry with the message details
                 executorService.submit(new Runnable() {
                     @Override
                     public void run() {
-                        synchronized(log) {
+                        synchronized (log) {
                             int row = log.size();
                             String method = helpers.analyzeRequest(resrsp).getMethod();
 
-                            String[] proxy_hosts =  Config.PROXY_HOST.split(",");
-                            String[] proxy_ports =  Config.PROXY_PORT.split(",");
-                            String[] proxy_usernames =  Config.PROXY_USERNAME.split(",");
-                            String[] proxy_pwds =  Config.PROXY_PASSWORD.split(",");
-                            String[] proxy_headers =  Config.PROXY_BASIC_HEADER.split(",");
+                            String[] proxy_hosts = Config.PROXY_HOST.split(",");
+                            String[] proxy_ports = Config.PROXY_PORT.split(",");
+                            String[] proxy_usernames = Config.PROXY_USERNAME.split(",");
+                            String[] proxy_pwds = Config.PROXY_PASSWORD.split(",");
+                            String[] proxy_headers = Config.PROXY_BASIC_HEADER.split(",");
 
-                            for(int i=0; i < proxy_hosts.length; i++) {
+                            for (int i = 0; i < proxy_hosts.length; i++) {
                                 String port = "";
                                 String name = "";
                                 String pwd = "";
                                 String header = "";
-                                if(proxy_ports.length > i) {
+                                if (proxy_ports.length > i) {
                                     name = proxy_ports[i];
                                 }
-                                if(proxy_usernames.length > i) {
+                                if (proxy_usernames.length > i) {
                                     name = proxy_usernames[i];
                                 }
-                                if(proxy_pwds.length > i) {
+                                if (proxy_pwds.length > i) {
                                     pwd = proxy_pwds[i];
                                 }
-                                if(proxy_headers.length > i) {
+                                if (proxy_headers.length > i) {
                                     header = proxy_headers[i];
                                 }
 
                                 Map<String, String> mapResult = null;
                                 try {
-                                    mapResult = HttpAndHttpsProxy.Proxy(resrsp, proxy_hosts[i], port, name, pwd, header);
-                                    mapResult.put("proxyHost",proxy_hosts[i] + ":" + port);
+                                    mapResult = HttpAndHttpsProxy.Proxy(resrsp, proxy_hosts[i], port, name, pwd,
+                                            header);
+                                    mapResult.put("proxyHost", proxy_hosts[i] + ":" + port);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }
 
-                                log.add(new LogEntry(row+i,
-                                        callbacks.saveBuffersToTempFiles(resrsp), helpers.analyzeRequest(resrsp).getUrl(),
+                                log.add(new LogEntry(row + i,
+                                        callbacks.saveBuffersToTempFiles(resrsp),
+                                        helpers.analyzeRequest(resrsp).getUrl(),
                                         method,
-                                        mapResult)
-                                );
+                                        mapResult));
                                 GUI.logTable.getHttpLogTableModel().fireTableRowsInserted(row, row);
                             }
                         }
@@ -307,7 +321,7 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
     }
 
     // 实现右键,需要先注册菜单拓展
-    public class Send2PSCMenu implements IContextMenuFactory{
+    public class Send2PSCMenu implements IContextMenuFactory {
         @Override
         public List<JMenuItem> createMenuItems(IContextMenuInvocation invocation) {
             final IHttpRequestResponse[] messages = invocation.getSelectedMessages();
@@ -325,43 +339,44 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                                     byte[] req = message.getRequest();
 
                                     String resrsp = new String(req);
-                                    String[] proxy_hosts =  Config.PROXY_HOST.split(",");
-                                    String[] proxy_ports =  Config.PROXY_PORT.split(",");
-                                    String[] proxy_usernames =  Config.PROXY_USERNAME.split(",");
-                                    String[] proxy_pwds =  Config.PROXY_PASSWORD.split(",");
-                                    String[] proxy_headers =  Config.PROXY_BASIC_HEADER.split(",");
+                                    String[] proxy_hosts = Config.PROXY_HOST.split(",");
+                                    String[] proxy_ports = Config.PROXY_PORT.split(",");
+                                    String[] proxy_usernames = Config.PROXY_USERNAME.split(",");
+                                    String[] proxy_pwds = Config.PROXY_PASSWORD.split(",");
+                                    String[] proxy_headers = Config.PROXY_BASIC_HEADER.split(",");
 
-                                    for(int i=0; i < proxy_hosts.length; i++) {
+                                    for (int i = 0; i < proxy_hosts.length; i++) {
                                         String port = "";
                                         String name = "";
                                         String pwd = "";
                                         String header = "";
-                                        if(proxy_ports.length > i) {
+                                        if (proxy_ports.length > i) {
                                             name = proxy_ports[i];
                                         }
-                                        if(proxy_usernames.length > i) {
+                                        if (proxy_usernames.length > i) {
                                             name = proxy_usernames[i];
                                         }
-                                        if(proxy_pwds.length > i) {
+                                        if (proxy_pwds.length > i) {
                                             pwd = proxy_pwds[i];
                                         }
-                                        if(proxy_headers.length > i) {
+                                        if (proxy_headers.length > i) {
                                             header = proxy_headers[i];
                                         }
 
                                         Map<String, String> mapResult = null;
                                         try {
-                                            mapResult = HttpAndHttpsProxy.Proxy(message, proxy_hosts[i], port, name, pwd, header);
-                                            mapResult.put("proxyHost",proxy_hosts[i] + ":" + port);
+                                            mapResult = HttpAndHttpsProxy.Proxy(message, proxy_hosts[i], port, name,
+                                                    pwd, header);
+                                            mapResult.put("proxyHost", proxy_hosts[i] + ":" + port);
                                         } catch (InterruptedException e) {
                                             e.printStackTrace();
                                         }
 
-                                        log.add(new LogEntry(row+i,
-                                                callbacks.saveBuffersToTempFiles(message), helpers.analyzeRequest(message).getUrl(),
+                                        log.add(new LogEntry(row + i,
+                                                callbacks.saveBuffersToTempFiles(message),
+                                                helpers.analyzeRequest(message).getUrl(),
                                                 method,
-                                                mapResult)
-                                        );
+                                                mapResult));
                                         GUI.logTable.getHttpLogTableModel().fireTableRowsInserted(row, row);
                                     }
                                 }

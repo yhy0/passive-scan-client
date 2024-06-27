@@ -4,35 +4,45 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
-    public static String getBanner(){
-        String bannerInfo =
-                "[+] " + BurpExtender.extensionName + " is loaded\n"
-                        + "[+] ^_^\n"
-                        + "[+]\n"
-                        + "[+] #####################################\n"
-                        + "[+]    " + BurpExtender.extensionName + " v" + BurpExtender.version +"\n"
-                        + "[+]    anthor: c0ny1 && yhy0\n"
-                        + "[+]    email:  root@gv7.me\n"
-                        + "[+]    github: http://github.com/c0ny1/passive-scan-client\n"
-                        + "[+] ####################################\n"
-                        + "[+] Please enjoy it!\n";
+    public static String getBanner() {
+        String bannerInfo = "[+] " + BurpExtender.extensionName + " is loaded\n"
+                + "[+] ^_^\n"
+                + "[+]\n"
+                + "[+] #####################################\n"
+                + "[+]    " + BurpExtender.extensionName + " v" + BurpExtender.version + "\n"
+                + "[+]    anthor: c0ny1 && yhy0\n"
+                + "[+]    email:  root@gv7.me\n"
+                + "[+]    github: http://github.com/c0ny1/passive-scan-client\n"
+                + "[+] ####################################\n"
+                + "[+] Please enjoy it!\n";
         return bannerInfo;
     }
 
-   // 匹配规则
-    public static boolean isMathch(String regx,String str){
-        Pattern pat = Pattern.compile("([\\w]+[\\.]|)("+regx+")",Pattern.CASE_INSENSITIVE);//正则判断
-        Matcher mc= pat.matcher(str);//条件匹配
-        if(mc.find()){
+    // 匹配规则
+    public static boolean isMathch(String regx, String str) {
+        Pattern pat = Pattern.compile("([\\w]+[\\.]|)(" + regx + ")\\b(?![\\w\\d])", Pattern.CASE_INSENSITIVE);// 正则判断
+        Matcher mc = pat.matcher(str);// 条件匹配
+        if (mc.find()) {
             return true;
-        }else{
+        } else {
             return false;
         }
     }
 
-   // 更新成功数据
-    public static void updateSuccessCount(){
-        synchronized(Config.FAIL_TOTAL){
+    // 匹配响应内容
+    public static boolean isMathchResp(String regx, String str) {
+        Pattern pat = Pattern.compile("([\\w]+[\\.]|)(" + regx + ")", Pattern.CASE_INSENSITIVE);// 正则判断
+        Matcher mc = pat.matcher(str);// 条件匹配
+        if (mc.find()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // 更新成功数据
+    public static void updateSuccessCount() {
+        synchronized (Config.FAIL_TOTAL) {
             Config.REQUEST_TOTAL++;
             Config.SUCCESS_TOTAL++;
             GUI.lbRequestCount.setText(String.valueOf(Config.REQUEST_TOTAL));
@@ -41,8 +51,8 @@ public class Utils {
     }
 
     // 更新失败数据
-    public static void updateFailCount(){
-        synchronized(Config.SUCCESS_TOTAL){
+    public static void updateFailCount() {
+        synchronized (Config.SUCCESS_TOTAL) {
             Config.REQUEST_TOTAL++;
             Config.FAIL_TOTAL++;
             GUI.lbRequestCount.setText(String.valueOf(Config.REQUEST_TOTAL));

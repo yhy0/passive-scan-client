@@ -198,7 +198,7 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                                 String pwd = "";
                                 String header = "";
                                 if(proxy_ports.length > i) {
-                                    name = proxy_ports[i];
+                                    port = proxy_ports[i];
                                 }
                                 if(proxy_usernames.length > i) {
                                     name = proxy_usernames[i];
@@ -272,7 +272,7 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                                 String pwd = "";
                                 String header = "";
                                 if(proxy_ports.length > i) {
-                                    name = proxy_ports[i];
+                                    port = proxy_ports[i];
                                 }
                                 if(proxy_usernames.length > i) {
                                     name = proxy_usernames[i];
@@ -306,6 +306,7 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
         }
     }
 
+
     // 实现右键,需要先注册菜单拓展
     public class Send2PSCMenu implements IContextMenuFactory{
         @Override
@@ -337,7 +338,7 @@ public class BurpExtender implements IBurpExtender,ITab,IHttpListener {
                                         String pwd = "";
                                         String header = "";
                                         if(proxy_ports.length > i) {
-                                            name = proxy_ports[i];
+                                            port = proxy_ports[i];
                                         }
                                         if(proxy_usernames.length > i) {
                                             name = proxy_usernames[i];
